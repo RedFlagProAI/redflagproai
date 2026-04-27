@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RedFlag Pro AI — Scan Before You Buy</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #080808;
+  --surface: #111111;
+  --surface2: #1a1a1a;
+  --border: rgba(255,255,255,0.06);
+  --border-red: rgba(204,0,0,0.4);
+  --text: #f0f0f0;
+  --text-muted: rgba(240,240,240,0.45);
+  --red: #cc0000;
+  --red-bright: #ff1111;
+  --red-glow: rgba(204,0,0,0.15);
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── NOISE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.4;
+}
+
+/* ── HEADER ── */
+header {
+  padding: 1.5rem 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: rgba(8,8,8,0.95);
+  backdrop-filter: blur(10px);
+  z-index: 100;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  width: 38px; height: 38px;
+  background: var(--red);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 20px rgba(204,0,0,0.5);
+}
+
+.logo-icon svg { width: 22px; height: 22px; }
+
+.logo-text {
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 0.05em;
+}
+
+.logo-text .red { color: var(--red); }
+
+.logo-pro {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--red);
+  letter-spacing: 0.3em;
+  margin-left: 4px;
+  vertical-align: super;
+  text-shadow: 0 0 8px rgba(204,0,0,0.8);
+}
+
+.beta-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--red);
+  border: 1px solid var(--border-red);
+  background: var(--red-glow);
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.1em;
+}
+
+/* ── HERO ── */
+.hero {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 5rem 2rem 3rem;
+  text-align: center;
+}
+
+.hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  color: var(--red);
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.hero-eyebrow::before, .hero-eyebrow::after {
+  content: '';
+  width: 40px;
+  height: 1px;
+  background: var(--red);
+  opacity: 0.5;
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(3.5rem, 10vw, 7rem);
+  letter-spacing: 0.03em;
+  line-height: 0.95;
+  margin-bottom: 1.5rem;
+}
+
+.hero h1 .red { color: var(--red); text-shadow: 0 0 30px rgba(204,0,0,0.4); }
+
+.hero p {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  max-width: 520px;
+  margin: 0 auto 2.5rem;
+  line-height: 1.7;
+}
+
+/* ── SCAN BOX ── */
+.scan-container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 2rem 5rem;
+}
+
+/* ── STEPS ── */
+.steps {
+  display: flex;
+  gap: 0;
+  margin-bottom: 2rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.step {
+  flex: 1;
+  padding: 1rem;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  transition: all 0.3s;
+  position: relative;
+}
+
+.step:last-child { border-right: none; }
+.step.active { background: var(--red-glow); color: var(--red); border-color: var(--border-red); }
+.step.done { background: rgba(255,255,255,0.03); color: rgba(240,240,240,0.3); }
+
+.step-num {
+  display: block;
+  font-size: 20px;
+  font-family: var(--font-display);
+  margin-bottom: 4px;
+  letter-spacing: 0.05em;
+}
+
+/* ── PANELS ── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+  display: none;
+}
+
+.panel.active { display: block; }
+
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.4rem;
+}
+
+.panel-sub {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+/* ── DROP ZONE ── */
+.drop-zone {
+  border: 2px dashed rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.drop-zone:hover, .drop-zone.over {
+  border-color: var(--red);
+  background: var(--red-glow);
+}
+
+.drop-zone input {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer;
+  width: 100%; height: 100%;
+}
+
+.drop-icon { font-size: 2rem; margin-bottom: 0.75rem; display: block; }
+.drop-title { font-weight: 500; margin-bottom: 0.3rem; }
+.drop-sub { font-size: 0.8rem; color: var(--text-muted); }
+
+/* ── URL INPUT ── */
+.input-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.url-row { display: flex; gap: 8px; margin-bottom: 1rem; }
+
+.url-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.url-input:focus { border-color: var(--red); }
+.url-input::placeholder { color: var(--text-muted); }
+
+.add-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 16px;
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.add-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ── QUEUE ── */
+.queue { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1.5rem; }
+
+.queue-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+
+.queue-name { flex: 1; font-family: var(--font-mono); color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.queue-remove { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 0 4px; transition: color 0.2s; }
+.queue-remove:hover { color: var(--red); }
+
+/* ── TEXT AREA ── */
+.scan-textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  resize: vertical;
+  min-height: 100px;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 1.5rem;
+}
+
+.scan-textarea:focus { border-color: var(--red); }
+.scan-textarea::placeholder { color: var(--text-muted); }
+
+/* ── PRICE BOX ── */
+.price-box {
+  background: var(--red-glow);
+  border: 1px solid var(--border-red);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.price-label { font-size: 0.875rem; color: var(--text-muted); }
+.price-label strong { display: block; color: var(--text); font-size: 1rem; margin-bottom: 2px; }
+.price-amount { font-family: var(--font-display); font-size: 2.5rem; color: var(--red); letter-spacing: 0.05em; line-height: 1; }
+.price-was { font-size: 0.75rem; color: var(--text-muted); text-decoration: line-through; text-align: right; }
+
+/* ── PAYMENT FORM ── */
+#payment-element {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 1.5rem;
+}
+
+/* ── BUTTONS ── */
+.btn-primary {
+  width: 100%;
+  padding: 16px;
+  background: var(--red);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 0 30px rgba(204,0,0,0.3);
+}
+
+.btn-primary:hover { background: var(--red-bright); box-shadow: 0 0 40px rgba(204,0,0,0.5); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+.btn-secondary {
+  width: 100%;
+  padding: 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 10px;
+}
+
+.btn-secondary:hover { border-color: var(--red); color: var(--red); }
+
+/* ── LOADING ── */
+.loading {
+  text-align: center;
+  padding: 2rem;
+}
+
+.spinner {
+  width: 44px; height: 44px;
+  border: 3px solid var(--border);
+  border-top-color: var(--red);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+}
+
+/* ── RESULTS ── */
+.risk-banner {
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.risk-banner.HIGH { background: rgba(204,0,0,0.1); border: 1px solid rgba(204,0,0,0.3); }
+.risk-banner.MEDIUM { background: rgba(255,160,0,0.08); border: 1px solid rgba(255,160,0,0.3); }
+.risk-banner.LOW { background: rgba(0,200,100,0.08); border: 1px solid rgba(0,200,100,0.3); }
+
+.risk-score {
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  line-height: 1;
+  min-width: 80px;
+  text-align: center;
+}
+
+.risk-banner.HIGH .risk-score { color: #ff3333; }
+.risk-banner.MEDIUM .risk-score { color: #ffaa00; }
+.risk-banner.LOW .risk-score { color: #00cc66; }
+
+.risk-info h2 { font-family: var(--font-display); font-size: 1.3rem; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+.risk-info p { font-size: 0.875rem; color: var(--text-muted); line-height: 1.6; }
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin: 1.5rem 0 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.flag-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 8px;
+}
+
+.flag-card.HIGH { border-left-color: #ff3333; }
+.flag-card.MEDIUM { border-left-color: #ffaa00; }
+.flag-card.LOW { border-left-color: #00cc66; }
+
+.flag-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 0.5rem; }
+
+.flag-sev {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  margin-top: 2px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.flag-sev.HIGH { background: rgba(255,51,51,0.12); color: #ff3333; }
+.flag-sev.MEDIUM { background: rgba(255,170,0,0.12); color: #ffaa00; }
+.flag-sev.LOW { background: rgba(0,204,102,0.12); color: #00cc66; }
+
+.flag-title { font-weight: 500; font-size: 0.9rem; }
+.flag-cat { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem; }
+.flag-body { font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; }
+.flag-fix { margin-top: 0.6rem; padding: 0.5rem 0.75rem; background: rgba(204,0,0,0.06); border-left: 2px solid var(--red); border-radius: 4px; font-size: 0.78rem; color: var(--text-muted); }
+
+.action-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+}
+
+.action-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: var(--red-glow);
+  color: var(--red);
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
+  margin-top: 1px;
+  border: 1px solid var(--border-red);
+}
+
+.positive-item {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  padding: 7px 0;
+  display: flex;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.positive-item:last-child { border: none; }
+.check { color: #00cc66; }
+
+.dl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 1.5rem;
+  padding: 12px 24px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-body);
+}
+
+.dl-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ── ERROR ── */
+.error-msg {
+  background: rgba(204,0,0,0.08);
+  border: 1px solid rgba(204,0,0,0.25);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  color: #ff6666;
+  margin-bottom: 1rem;
+  display: none;
+}
+
+.error-msg.visible { display: block; }
+
+/* ── FEATURES ── */
+.features {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 2rem 5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.feature {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.feature-icon { font-size: 1.5rem; margin-bottom: 0.75rem; display: block; }
+.feature-title { font-weight: 500; font-size: 0.9rem; margin-bottom: 0.3rem; }
+.feature-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+
+/* ── DISCLAIMER ── */
+.disclaimer {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 0 2rem 3rem;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M4 4L12 2L20 4V13C20 17.4 16.4 21.2 12 22C7.6 21.2 4 17.4 4 13V4Z" fill="white"/>
+        <path d="M12 7V13" stroke="#cc0000" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="12" cy="16.5" r="1.3" fill="#cc0000"/>
+      </svg>
+    </div>
+    <div>
+      <span class="logo-text"><span class="red">RED</span>FLAG AI</span>
+      <span class="logo-pro">PRO</span>
+    </div>
+  </div>
+  <div class="beta-badge">BETA ACCESS — £14.99</div>
+</header>
+
+<div class="hero">
+  <div class="hero-eyebrow">AI Compliance Scanner</div>
+  <h1>SCAN.<br><span class="red">FLAG.</span><br>PROTECT.</h1>
+  <p>Drop in any sales page, VSL, contract or T&Cs. Our AI cross-references everything and tells you exactly where the red flags are — before you buy or before you sell.</p>
+</div>
+
+<div class="scan-container">
+  <div class="steps">
+    <div class="step active" id="step1">
+      <span class="step-num">01</span>
+      Upload
+    </div>
+    <div class="step" id="step2">
+      <span class="step-num">02</span>
+      Pay
+    </div>
+    <div class="step" id="step3">
+      <span class="step-num">03</span>
+      Results
+    </div>
+  </div>
+
+  <!-- PANEL 1: UPLOAD -->
+  <div class="panel active" id="panel-upload">
+    <div class="panel-title">ADD YOUR MATERIALS</div>
+    <div class="panel-sub">Drop files, paste URLs or paste text — or all three at once</div>
+
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" multiple accept=".pdf,.txt,.doc,.docx,.html,.csv">
+      <span class="drop-icon">📂</span>
+      <div class="drop-title">Drag & drop files here</div>
+      <div class="drop-sub">PDF, TXT, DOC, HTML — contracts, T&Cs, VSL scripts, sales pages</div>
+    </div>
+
+    <span class="input-label">Scan a URL</span>
+    <div class="url-row">
+      <input type="text" class="url-input" id="urlInput" placeholder="https://sales-page.com/terms">
+      <button class="add-btn" onclick="addURL()">+ Add</button>
+    </div>
+
+    <span class="input-label">Or paste text directly</span>
+    <textarea class="scan-textarea" id="pasteText" placeholder="Paste any marketing copy, contract text, VSL transcript..."></textarea>
+
+    <div class="queue" id="queue"></div>
+    <div class="error-msg" id="uploadError"></div>
+
+    <button class="btn-primary" onclick="proceedToPayment()">CONTINUE TO PAYMENT →</button>
+  </div>
+
+  <!-- PANEL 2: PAYMENT -->
+  <div class="panel" id="panel-payment">
+    <div class="panel-title">SECURE PAYMENT</div>
+    <div class="panel-sub">One-time beta access scan — no subscription, no account needed</div>
+
+    <div class="price-box">
+      <div class="price-label">
+        <strong>RedFlag Pro AI — Single Scan</strong>
+        Full compliance risk report
+      </div>
+      <div>
+        <div class="price-amount">£14.99</div>
+        <div class="price-was">Usually £19</div>
+      </div>
+    </div>
+
+    <div id="payment-element"></div>
+    <div class="error-msg" id="paymentError"></div>
+    <button class="btn-primary" id="payBtn" onclick="handlePayment()">PAY £14.99 & RUN SCAN</button>
+    <button class="btn-secondary" onclick="goBack()">← Go back</button>
+  </div>
+
+  <!-- PANEL 3: SCANNING -->
+  <div class="panel" id="panel-scanning">
+    <div class="loading">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loadingText">VERIFYING PAYMENT...</div>
+    </div>
+  </div>
+
+  <!-- PANEL 4: RESULTS -->
+  <div class="panel" id="panel-results">
+    <div id="results-content"></div>
+    <button class="dl-btn" onclick="downloadReport()">↓ Download Report</button>
+    <button class="dl-btn" onclick="resetScan()" style="margin-left: 10px;">↺ New Scan</button>
+    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem;">⚠️ This is AI-assisted risk analysis, not legal advice. Consult a qualified solicitor for formal legal review.</p>
+  </div>
+</div>
+
+<div class="features">
+  <div class="feature">
+    <span class="feature-icon">⚡</span>
+    <div class="feature-title">60 Second Scan</div>
+    <div class="feature-desc">Drop your files and get a full risk report in under 60 seconds</div>
+  </div>
+  <div class="feature">
+    <span class="feature-icon">🎯</span>
+    <div class="feature-title">Claim vs T&C Check</div>
+    <div class="feature-desc">Cross-references marketing promises against the small print automatically</div>
+  </div>
+  <div class="feature">
+    <span class="feature-icon">🧠</span>
+    <div class="feature-title">Psychology Detection</div>
+    <div class="feature-desc">Flags false scarcity, fake urgency and manipulation tactics</div>
+  </div>
+  <div class="feature">
+    <span class="feature-icon">📋</span>
+    <div class="feature-title">Full PDF Report</div>
+    <div class="feature-desc">Download a professional report showing every red flag found</div>
+  </div>
+  <div class="feature">
+    <span class="feature-icon">🛡</span>
+    <div class="feature-title">ASA & FTC Rules</div>
+    <div class="feature-desc">Checks against UK and US advertising standards automatically</div>
+  </div>
+  <div class="feature">
+    <span class="feature-icon">🔒</span>
+    <div class="feature-title">Secure & Private</div>
+    <div class="feature-desc">Your files are analysed and never stored or shared</div>
+  </div>
+</div>
+
+<div class="disclaimer">
+  RedFlag Pro AI provides AI-assisted compliance risk analysis for informational purposes only. Reports do not constitute legal advice. Always consult a qualified solicitor for formal legal review. RedFlag Pro AI is not liable for decisions made based on scan results.
+</div>
+
+<script>
+let stripe = null;
+let elements = null;
+let paymentElement = null;
+let sources = [];
+let lastResults = null;
+let currentPaymentIntentId = null;
+
+// Init Stripe
+async function initStripe() {
+  try {
+    const res = await fetch('/config');
+    const config = await res.json();
+    stripe = Stripe(config.publishableKey);
+  } catch(e) {
+    console.error('Stripe init failed:', e);
+  }
+}
+
+initStripe();
+
+// ── DRAG & DROP ──
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('over');
+  handleFiles(e.dataTransfer.files);
+});
+
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+function handleFiles(files) {
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      sources.push({ type: 'file', name: file.name, content: e.target.result, file: file });
+      renderQueue();
+    };
+    reader.readAsText(file);
+  });
+}
+
+function addURL() {
+  const input = document.getElementById('urlInput');
+  const url = input.value.trim();
+  if (!url) return;
+  if (!url.startsWith('http')) { showError('uploadError', 'Please enter a valid URL starting with http://'); return; }
+  sources.push({ type: 'url', name: url, content: null });
+  input.value = '';
+  renderQueue();
+}
+
+document.getElementById('urlInput').addEventListener('keydown', e => { if (e.key === 'Enter') addURL(); });
+
+function renderQueue() {
+  const q = document.getElementById('queue');
+  q.innerHTML = sources.map((s, i) => `
+    <div class="queue-item">
+      <span>${s.type === 'url' ? '🌐' : '📄'}</span>
+      <span class="queue-name">${s.name}</span>
+      <button class="queue-remove" onclick="removeSource(${i})">×</button>
+    </div>
+  `).join('');
+}
+
+function removeSource(i) { sources.splice(i, 1); renderQueue(); }
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('visible');
+  setTimeout(() => el.classList.remove('visible'), 5000);
+}
+
+// ── STEPS ──
+function setStep(n) {
+  document.querySelectorAll('.step').forEach((s, i) => {
+    s.classList.remove('active', 'done');
+    if (i + 1 < n) s.classList.add('done');
+    if (i + 1 === n) s.classList.add('active');
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+}
+
+// ── PROCEED TO PAYMENT ──
+async function proceedToPayment() {
+  const pasteText = document.getElementById('pasteText').value.trim();
+  if (sources.length === 0 && !pasteText) {
+    showError('uploadError', 'Please add at least one file, URL or paste some text to scan.');
+    return;
+  }
+
+  setStep(2);
+  document.getElementById('panel-payment').classList.add('active');
+
+  try {
+    const res = await fetch('/create-payment-intent', { method: 'POST' });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    currentPaymentIntentId = data.paymentIntentId;
+
+    elements = stripe.elements({ clientSecret: data.clientSecret, appearance: {
+      theme: 'night',
+      variables: {
+        colorPrimary: '#cc0000',
+        colorBackground: '#1a1a1a',
+        colorText: '#f0f0f0',
+        colorDanger: '#ff6666',
+        fontFamily: 'DM Sans, sans-serif',
+        borderRadius: '8px'
+      }
+    }});
+
+    paymentElement = elements.create('payment');
+    paymentElement.mount('#payment-element');
+
+  } catch(e) {
+    showError('paymentError', 'Payment setup failed: ' + e.message);
+  }
+}
+
+function goBack() {
+  setStep(1);
+  document.getElementById('panel-upload').classList.add('active');
+}
+
+// ── HANDLE PAYMENT ──
+async function handlePayment() {
+  const payBtn = document.getElementById('payBtn');
+  payBtn.disabled = true;
+  payBtn.textContent = 'PROCESSING...';
+
+  try {
+    const { error } = await stripe.confirmPayment({
+      elements,
+      redirect: 'if_required'
+    });
+
+    if (error) {
+      showError('paymentError', error.message);
+      payBtn.disabled = false;
+      payBtn.textContent = 'PAY £14.99 & RUN SCAN';
+      return;
+    }
+
+    // Payment succeeded — run scan
+    runScan();
+
+  } catch(e) {
+    showError('paymentError', 'Payment failed: ' + e.message);
+    payBtn.disabled = false;
+    payBtn.textContent = 'PAY £14.99 & RUN SCAN';
+  }
+}
+
+// ── RUN SCAN ──
+async function runScan() {
+  setStep(3);
+  document.getElementById('panel-scanning').classList.add('active');
+
+  const messages = [
+    'VERIFYING PAYMENT...',
+    'EXTRACTING CONTENT...',
+    'RUNNING AI ANALYSIS...',
+    'DETECTING RED FLAGS...',
+    'BUILDING YOUR REPORT...'
+  ];
+
+  let msgIndex = 0;
+  const loadingText = document.getElementById('loadingText');
+  const msgInterval = setInterval(() => {
+    msgIndex = (msgIndex + 1) % messages.length;
+    loadingText.textContent = messages[msgIndex];
+  }, 2000);
+
+  try {
+    const formData = new FormData();
+    formData.append('paymentIntentId', currentPaymentIntentId);
+
+    sources.forEach(s => {
+      if (s.type === 'file' && s.file) formData.append('files', s.file);
+      if (s.type === 'url') formData.append('urls', s.name);
+    });
+
+    const pasteText = document.getElementById('pasteText').value.trim();
+    if (pasteText) formData.append('text', pasteText);
+
+    const res = await fetch('/scan', { method: 'POST', body: formData });
+    const results = await res.json();
+
+    clearInterval(msgInterval);
+
+    if (results.error) throw new Error(results.error);
+
+    lastResults = results;
+    renderResults(results);
+
+  } catch(e) {
+    clearInterval(msgInterval);
+    setStep(3);
+    document.getElementById('panel-scanning').innerHTML = `
+      <div style="text-align:center;padding:2rem;">
+        <div style="font-size:2rem;margin-bottom:1rem;">⚠️</div>
+        <div style="color:#ff6666;margin-bottom:1rem;">Scan failed: ${e.message}</div>
+        <button class="btn-secondary" onclick="resetScan()">Try Again</button>
+      </div>
+    `;
+  }
+}
+
+// ── RENDER RESULTS ──
+function renderResults(r) {
+  setStep(3);
+  document.getElementById('step3').classList.add('active');
+  document.getElementById('panel-results').classList.add('active');
+
+  const level = r.overall_risk_level || 'UNKNOWN';
+  const score = r.risk_score || 0;
+  const flags = r.red_flags || [];
+  const incs = r.inconsistencies || [];
+  const positives = r.positive_findings || [];
+  const actions = r.priority_actions || [];
+
+  let html = `
+    <div class="risk-banner ${level}">
+      <div class="risk-score">${score}</div>
+      <div class="risk-info">
+        <h2>${level} RISK — ${flags.length} FLAG${flags.length !== 1 ? 'S' : ''} FOUND</h2>
+        <p>${r.summary || 'Scan complete.'}</p>
+      </div>
+    </div>
+  `;
+
+  if (flags.length > 0) {
+    html += `<div class="section-label">Red Flags (${flags.length})</div>`;
+    flags.forEach(f => {
+      html += `
+        <div class="flag-card ${f.severity}">
+          <div class="flag-header">
+            <span class="flag-sev ${f.severity}">${f.severity}</span>
+            <div class="flag-title">${f.title}</div>
+          </div>
+          <div class="flag-cat">${f.category} · ${f.location}</div>
+          <div class="flag-body">${f.finding}</div>
+          <div class="flag-fix">💡 Fix: ${f.recommendation}</div>
+        </div>
+      `;
+    });
+  }
+
+  if (incs.length > 0) {
+    html += `<div class="section-label">Cross-Document Conflicts (${incs.length})</div>`;
+    incs.forEach(inc => {
+      html += `
+        <div class="flag-card MEDIUM">
+          <div class="flag-cat">${inc.document_a} vs ${inc.document_b}</div>
+          <div class="flag-body"><strong style="color:var(--text)">Document A says:</strong> ${inc.claim_a}</div>
+          <div class="flag-body" style="margin-top:6px"><strong style="color:var(--text)">Document B says:</strong> ${inc.claim_b}</div>
+          <div class="flag-fix">⚡ ${inc.conflict}</div>
+        </div>
+      `;
+    });
+  }
+
+  if (actions.length > 0) {
+    html += `<div class="section-label">Priority Actions</div>`;
+    actions.forEach((a, i) => {
+      html += `
+        <div class="action-item">
+          <span class="action-num">0${i+1}</span>
+          <span>${a}</span>
+        </div>
+      `;
+    });
+  }
+
+  if (positives.length > 0) {
+    html += `<div class="section-label">What's Compliant</div>`;
+    html += positives.map(p => `
+      <div class="positive-item">
+        <span class="check">✓</span>
+        <span>${p}</span>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('results-content').innerHTML = html;
+}
+
+function downloadReport() {
+  if (!lastResults) return;
+  const r = lastResults;
+  const lines = [
+    'REDFLAG PRO AI — COMPLIANCE SCAN REPORT',
+    `Generated: ${new Date().toLocaleString()}`,
+    '='.repeat(60),
+    '',
+    `RISK LEVEL: ${r.overall_risk_level} (Score: ${r.risk_score}/100)`,
+    '',
+    'SUMMARY:',
+    r.summary,
+    '',
+    `RED FLAGS (${(r.red_flags||[]).length}):`,
+    ...(r.red_flags||[]).map(f => `\n[${f.severity}] ${f.title}\n  Category: ${f.category}\n  Finding: ${f.finding}\n  Location: ${f.location}\n  Fix: ${f.recommendation}`),
+    '',
+    `INCONSISTENCIES (${(r.inconsistencies||[]).length}):`,
+    ...(r.inconsistencies||[]).map(i => `\n${i.document_a} vs ${i.document_b}\n  A: ${i.claim_a}\n  B: ${i.claim_b}\n  Issue: ${i.conflict}`),
+    '',
+    'PRIORITY ACTIONS:',
+    ...(r.priority_actions||[]).map((a, i) => `${i+1}. ${a}`),
+    '',
+    'COMPLIANT ITEMS:',
+    ...(r.positive_findings||[]).map(p => `✓ ${p}`),
+    '',
+    '─'.repeat(60),
+    'This report is AI-assisted risk analysis, not legal advice.',
+    'Consult a qualified solicitor for formal legal review.',
+    'RedFlag Pro AI — redflagproai.com'
+  ];
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `redflagpro-report-${Date.now()}.txt`;
+  a.click();
+}
+
+function resetScan() {
+  sources = [];
+  lastResults = null;
+  currentPaymentIntentId = null;
+  renderQueue();
+  document.getElementById('pasteText').value = '';
+  document.getElementById('results-content').innerHTML = '';
+  document.getElementById('panel-scanning').innerHTML = `
+    <div class="loading">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loadingText">VERIFYING PAYMENT...</div>
+    </div>
+  `;
+  setStep(1);
+  document.getElementById('panel-upload').classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+
+</body>
+</html>
