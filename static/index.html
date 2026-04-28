@@ -744,9 +744,7 @@ let currentPaymentIntentId = null;
 // Init Stripe
 async function initStripe() {
   try {
-    const res = await fetch('/config');
-    const config = await res.json();
-    stripe = Stripe(config.publishableKey);
+    stripe = Stripe('pk_test_51TQwCa0vmLjKO4GpD5IuFRcfbyu4yyrOq5uoBdku6YuyMmiGPLFPczKdhTZQa0WU9wO65OOCYpaLn8RSJbjnfba600hhZONrVK
   } catch(e) {
     console.error('Stripe init failed:', e);
   }
