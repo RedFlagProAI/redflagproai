@@ -866,6 +866,35 @@ function goBack() {
 
 // ── HANDLE PAYMENT ──
 async function handlePayment() {
+  if (!elements || !stripe) {
+    showError('paymentError', 'Payment form still loading — please wait a moment and try again.');
+    return;
+  }
+  const payBtn = document.getElementById('payBtn');
+  payBtn.disabled = true;
+  payBtn.textContent = 'PROCESSING...';
+
+  try {
+    const { error } = await stripe.confirmPayment({
+      elements,
+      redirect: 'if_required'
+    });
+
+    if (error) {
+      showError('paymentError', error.message);
+      payBtn.disabled = false;
+      payBtn.textContent = 'PAY £14.99 & RUN SCAN';
+      return;
+    }
+
+    runScan();
+
+  } catch(e) {
+    showError('paymentError', 'Payment failed: ' + e.message);
+    payBtn.disabled = false;
+    payBtn.textContent = 'PAY £14.99 & RUN SCAN';
+  }
+}
   const payBtn = document.getElementById('payBtn');
   payBtn.disabled = true;
   payBtn.textContent = 'PROCESSING...';
