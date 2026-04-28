@@ -675,7 +675,7 @@ header {
 
     <div id="payment-element"></div>
     <div class="error-msg" id="paymentError"></div>
-    <button class="btn-primary" id="payBtn" onclick="handlePayment()">PAY £14.99 & RUN SCAN</button>
+   <button class="btn-primary" id="payBtn" disabled onclick="handlePayment()">PAY £14.99 & RUN SCAN</button>
     <button class="btn-secondary" onclick="goBack()">← Go back</button>
   </div>
 
@@ -851,6 +851,17 @@ async function proceedToPayment() {
 
     paymentElement = elements.create('payment');
     paymentElement.mount('#payment-element');
+
+    await new Promise(resolve => {
+      paymentElement.on('ready', resolve);
+    });
+
+    document.getElementById('payBtn').disabled = false;
+
+  } catch(e) {
+    showError('paymentError', 'Payment setup failed: ' + e.message);
+  }
+}
 
   } catch(e) {
     showError('paymentError', 'Payment setup failed: ' + e.message);
