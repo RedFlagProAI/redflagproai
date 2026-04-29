@@ -12,7 +12,7 @@ CORS(app)
 
 # Keys from environment variables — never hardcode these
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
-ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')print(f"Anthropic key loaded: {bool(ANTHROPIC_API_KEY)}")
 STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 
