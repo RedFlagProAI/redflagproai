@@ -130,10 +130,13 @@ def run_scan():
         if not materials_text.strip():
             return jsonify({'error': 'No content provided to scan'}), 400
 
+        print(f"Materials text length: {len(materials_text)}")
+        print(f"Materials preview: {materials_text[:200]}")
+
         # Run Claude analysis
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         message = client.messages.create(
-            model='claude-opus-4-5',
+            model='claude-sonnet-4-20250514',
             max_tokens=4096,
             messages=[{
                 'role': 'user',
